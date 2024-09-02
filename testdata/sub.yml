@@ -1,0 +1,7 @@
+---
+program:
+  - PUSH 3
+  - PUSH 5
+  - SUB
+error: false
+return: -2

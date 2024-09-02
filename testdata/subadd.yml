@@ -1,0 +1,9 @@
+---
+program:
+  - PUSH 3
+  - PUSH 5
+  - PUSH 8
+  - SUB
+  - Add
+error: false
+return: 0

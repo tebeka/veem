@@ -3,48 +3,12 @@ package veem
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"gopkg.in/yaml.v3"
 )
-
-var executeCases = []struct {
-	name    string
-	program []Op
-	val     int8
-	err     bool
-}{
-	{
-		"add",
-		[]Op{
-			PushOp | 3<<8,
-			PushOp | 5<<8,
-			AddOp,
-		},
-		8, false,
-	},
-	{
-		"sub",
-		[]Op{
-			PushOp | 3<<8,
-			PushOp | 5<<8,
-			SubOp,
-		},
-		int8(-2), false,
-	},
-	{
-		"add sub",
-		[]Op{
-			PushOp | 3<<8,
-			PushOp | 5<<8,
-			PushOp | 8<<8,
-			AddOp,
-			SubOp,
-		},
-		6, false,
-	},
-}
 
 type testCase struct {
 	name    string
@@ -55,7 +19,7 @@ type testCase struct {
 
 func parseOp(op string) (Op, error) {
 	var name string
-	var val int8
+	var val Op
 	i, _ := fmt.Sscanf(op, "%s %d", &name, &val)
 	if i == 0 {
 		return 0, fmt.Errorf("parse %q", op)
@@ -72,7 +36,7 @@ func parseOp(op string) (Op, error) {
 		}
 		val <<= 8
 
-		return Op(val | int8(PushOp)), nil
+		return Op(val | PushOp), nil
 	}
 
 	return 0, fmt.Errorf("%q - unknown op", name)
@@ -88,15 +52,37 @@ func loadCase(t *testing.T, fileName string) testCase {
 	var tc struct {
 		program []string
 		val     int8
-		err     bool `yaml:"error"`
+		error   bool
 	}
 	if err := yaml.NewDecoder(file).Decode(&tc); err != nil {
 		t.Fatal(err)
 	}
+
+	prog := make([]Op, 0, len(tc.program))
+	for _, v := range tc.program {
+		op, err := parseOp(v)
+		if err != nil {
+			t.Fatal(err)
+		}
+		prog = append(prog, op)
+	}
+
+	return testCase{
+		name:    filepath.Base(fileName[:len(fileName)-4]),
+		program: prog,
+		val:     tc.val,
+		err:     tc.error,
+	}
 }
 
 func TestVM_Execute(t *testing.T) {
-	for _, tc := range executeCases {
+	files, err := filepath.Glob("testdata/*.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, fileName := range files {
+		tc := loadCase(t, fileName)
 		t.Run(tc.name, func(t *testing.T) {
 			var v VM
 			val, err := v.Execute(tc.program)
