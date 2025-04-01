@@ -36,6 +36,7 @@ func Push(n int) Inst {
 }
 
 var ErrStackUnderflow = errors.New("stack underflow")
+var ErrDivisionByZero = errors.New("division by zero")
 
 func Add(vm *VM) int {
 	if vm.sp < 2 {
@@ -55,6 +56,33 @@ func Sub(vm *VM) int {
 	}
 
 	vm.stack[vm.sp-2] -= vm.stack[vm.sp-1]
+	vm.sp--
+	return 1
+}
+
+func Mul(vm *VM) int {
+	if vm.sp < 2 {
+		vm.err = ErrStackUnderflow
+		return 0
+	}
+
+	vm.stack[vm.sp-2] *= vm.stack[vm.sp-1]
+	vm.sp--
+	return 1
+}
+
+func Div(vm *VM) int {
+	if vm.sp < 2 {
+		vm.err = ErrStackUnderflow
+		return 0
+	}
+
+	if vm.stack[vm.sp-1] == 0 {
+		vm.err = ErrDivisionByZero
+		return 0
+	}
+
+	vm.stack[vm.sp-2] /= vm.stack[vm.sp-1]
 	vm.sp--
 	return 1
 }

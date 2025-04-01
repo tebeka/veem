@@ -1,0 +1,13 @@
+{
+	"program": [
+		"PUSH 5",
+		"PUSH 3",
+		"MUL",
+		"PUSH 3",
+		"DIV",
+		"PUSH 2",
+		"ADD"
+	],
+	"error": false,
+	"out": 7
+}

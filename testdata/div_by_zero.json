@@ -1,0 +1,8 @@
+{
+	"program": [
+		"PUSH 15",
+		"PUSH 0",
+		"DIV"
+	],
+	"error": true
+}

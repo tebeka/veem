@@ -35,9 +35,19 @@ func parseCode(code string) (Inst, error) {
 		return Add, nil
 	case "SUB":
 		if i != 1 {
-			return nil, fmt.Errorf("add does not take a value")
+			return nil, fmt.Errorf("sub does not take a value")
 		}
 		return Sub, nil
+	case "MUL":
+		if i != 1 {
+			return nil, fmt.Errorf("mul does not take a value")
+		}
+		return Mul, nil
+	case "DIV":
+		if i != 1 {
+			return nil, fmt.Errorf("div does not take a value")
+		}
+		return Div, nil
 	case "PUSH":
 		if i != 2 {
 			return nil, fmt.Errorf("push missing value")
