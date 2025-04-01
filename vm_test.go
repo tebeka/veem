@@ -1,45 +1,52 @@
 package veem
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"gopkg.in/yaml.v3"
 )
 
 type testCase struct {
 	name    string
-	program []Op
-	val     int8
+	program []Inst
+	out     int
 	err     bool
 }
 
-func parseOp(op string) (Op, error) {
+func parseCode(code string) (Inst, error) {
 	var name string
-	var val Op
-	i, _ := fmt.Sscanf(op, "%s %d", &name, &val)
-	if i == 0 {
-		return 0, fmt.Errorf("parse %q", op)
+	var val int
+
+	i, err := fmt.Sscanf(code, "%s %d", &name, &val)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return nil, err
 	}
 
 	switch strings.ToUpper(name) {
 	case "ADD":
-		return AddOp, nil
+		if i != 1 {
+			return nil, fmt.Errorf("add does not take a value")
+		}
+		return Add, nil
 	case "SUB":
-		return SubOp, nil
+		if i != 1 {
+			return nil, fmt.Errorf("add does not take a value")
+		}
+		return Sub, nil
 	case "PUSH":
 		if i != 2 {
-			return 0, fmt.Errorf("push missing value")
+			return nil, fmt.Errorf("push missing value")
 		}
-		val <<= 8
 
-		return Op(val | PushOp), nil
+		return Push(val), nil
 	}
 
-	return 0, fmt.Errorf("%q - unknown op", name)
+	return nil, fmt.Errorf("%q - unknown op", name)
 }
 
 func loadCase(t *testing.T, fileName string) testCase {
@@ -51,16 +58,16 @@ func loadCase(t *testing.T, fileName string) testCase {
 
 	var tc struct {
 		program []string
-		val     int8
+		out     int
 		error   bool
 	}
-	if err := yaml.NewDecoder(file).Decode(&tc); err != nil {
+	if err := json.NewDecoder(file).Decode(&tc); err != nil {
 		t.Fatal(err)
 	}
 
-	prog := make([]Op, 0, len(tc.program))
+	prog := make([]Inst, 0, len(tc.program))
 	for _, v := range tc.program {
-		op, err := parseOp(v)
+		op, err := parseCode(v)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -70,13 +77,13 @@ func loadCase(t *testing.T, fileName string) testCase {
 	return testCase{
 		name:    filepath.Base(fileName[:len(fileName)-4]),
 		program: prog,
-		val:     tc.val,
+		out:     tc.out,
 		err:     tc.error,
 	}
 }
 
 func TestVM_Execute(t *testing.T) {
-	files, err := filepath.Glob("testdata/*.yml")
+	files, err := filepath.Glob("testdata/*.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,8 +104,8 @@ func TestVM_Execute(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			if val != tc.val {
-				t.Fatalf("expected %v, got %v", tc.val, val)
+			if val != tc.out {
+				t.Fatalf("expected %v, got %v", tc.out, val)
 			}
 		})
 	}

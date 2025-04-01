@@ -1,57 +1,60 @@
 package veem
 
-import (
-	"fmt"
-)
-
-type Op uint16 // low byte op, high byte value
-
-const (
-	InvalidOp Op = iota
-	PushOp
-	AddOp
-	SubOp
-)
+import "errors"
 
 type VM struct {
-	stack []int8
+	stack []int
+	sp    int
+	err   error
 }
 
-func (v *VM) Execute(program []Op) (int8, error) {
-	for i, op := range program {
-		code := op & 0xFF
-		switch code {
-		case InvalidOp:
-			return 0, fmt.Errorf("%d: invalid op", i)
-		case PushOp:
-			val := int8(op >> 8)
-			v.push(val)
-		case AddOp:
-			v1, v2 := v.pop(), v.pop()
-			val := v1 + v2
-			v.push(val)
-		case SubOp:
-			v1, v2 := v.pop(), v.pop()
-			val := v1 - v2
-			v.push(val)
+func (vm *VM) Execute(code []Inst) (int, error) {
+	ip := 0
+
+	for ip < len(code) {
+		ip += code[ip](vm)
+		if vm.err != nil {
+			return 0, vm.err
 		}
 	}
 
-	if len(v.stack) > 0 {
-		return v.stack[len(v.stack)-1], nil
+	if vm.sp == 0 {
+		return 0, nil
 	}
 
-	return 0, nil
+	return vm.stack[vm.sp-1], nil
 }
 
-func (v *VM) push(val int8) {
-	v.stack = append(v.stack, val)
+type Inst func(*VM) int
+
+func Push(n int) Inst {
+	return func(vm *VM) int {
+		vm.stack = append(vm.stack, n)
+		vm.sp++
+		return 1
+	}
 }
 
-func (v *VM) pop() int8 {
-	i := len(v.stack) - 1
-	val := v.stack[i]
-	v.stack = v.stack[:i]
+var ErrStackUnderflow = errors.New("stack underflow")
 
-	return val
+func Add(vm *VM) int {
+	if vm.sp < 2 {
+		vm.err = ErrStackUnderflow
+		return 0
+	}
+
+	vm.stack[vm.sp-2] += vm.stack[vm.sp-1]
+	vm.sp--
+	return 1
+}
+
+func Sub(vm *VM) int {
+	if vm.sp < 2 {
+		vm.err = ErrStackUnderflow
+		return 0
+	}
+
+	vm.stack[vm.sp-2] -= vm.stack[vm.sp-1]
+	vm.sp--
+	return 1
 }
