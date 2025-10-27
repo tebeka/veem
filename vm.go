@@ -1,6 +1,9 @@
 package veem
 
-import "errors"
+import (
+	"cmp"
+	"errors"
+)
 
 type VM struct {
 	stack []int
@@ -38,51 +41,56 @@ func Push(n int) Inst {
 var ErrStackUnderflow = errors.New("stack underflow")
 var ErrDivisionByZero = errors.New("division by zero")
 
-func Add(vm *VM) int {
+func binOp(vm *VM, fn func(int, int) int) int {
 	if vm.sp < 2 {
 		vm.err = ErrStackUnderflow
 		return 0
 	}
 
-	vm.stack[vm.sp-2] += vm.stack[vm.sp-1]
+	vm.stack[vm.sp-2] = fn(vm.stack[vm.sp-2], vm.stack[vm.sp-1])
 	vm.sp--
+	vm.stack = vm.stack[:vm.sp]
 	return 1
+}
+
+func Add(vm *VM) int {
+	return binOp(vm, func(a, b int) int { return a + b })
 }
 
 func Sub(vm *VM) int {
-	if vm.sp < 2 {
-		vm.err = ErrStackUnderflow
-		return 0
-	}
-
-	vm.stack[vm.sp-2] -= vm.stack[vm.sp-1]
-	vm.sp--
-	return 1
+	return binOp(vm, func(a, b int) int { return a - b })
 }
 
 func Mul(vm *VM) int {
-	if vm.sp < 2 {
-		vm.err = ErrStackUnderflow
-		return 0
-	}
-
-	vm.stack[vm.sp-2] *= vm.stack[vm.sp-1]
-	vm.sp--
-	return 1
+	return binOp(vm, func(a, b int) int { return a * b })
 }
 
 func Div(vm *VM) int {
-	if vm.sp < 2 {
-		vm.err = ErrStackUnderflow
-		return 0
-	}
+	return binOp(
+		vm,
+		func(a, b int) int {
+			if b == 0 {
+				vm.err = ErrDivisionByZero
+				return 0
+			}
+			return a / b
+		},
+	)
+}
 
-	if vm.stack[vm.sp-1] == 0 {
-		vm.err = ErrDivisionByZero
-		return 0
-	}
+func Mod(vm *VM) int {
+	return binOp(
+		vm,
+		func(a, b int) int {
+			if b == 0 {
+				vm.err = ErrDivisionByZero
+				return 0
+			}
+			return a % b
+		},
+	)
+}
 
-	vm.stack[vm.sp-2] /= vm.stack[vm.sp-1]
-	vm.sp--
-	return 1
+func Cmp(vm *VM) int {
+	return binOp(vm, cmp.Compare)
 }

@@ -54,6 +54,18 @@ func parseCode(code string) (Inst, error) {
 		}
 
 		return Push(val), nil
+	case "MOD":
+		if i != 1 {
+			return nil, fmt.Errorf("add does not take a value")
+		}
+
+		return Mod, nil
+	case "CMP":
+		if i != 1 {
+			return nil, fmt.Errorf("add does not take a value")
+		}
+
+		return Cmp, nil
 	}
 
 	return nil, fmt.Errorf("%q - unknown op", name)
@@ -67,16 +79,17 @@ func loadCase(t *testing.T, fileName string) testCase {
 	defer file.Close()
 
 	var tc struct {
-		program []string
-		out     int
-		error   bool
+		Program []string
+		Out     int
+		Error   bool
 	}
+
 	if err := json.NewDecoder(file).Decode(&tc); err != nil {
 		t.Fatal(err)
 	}
 
-	prog := make([]Inst, 0, len(tc.program))
-	for _, v := range tc.program {
+	prog := make([]Inst, 0, len(tc.Program))
+	for _, v := range tc.Program {
 		op, err := parseCode(v)
 		if err != nil {
 			t.Fatal(err)
@@ -85,10 +98,10 @@ func loadCase(t *testing.T, fileName string) testCase {
 	}
 
 	return testCase{
-		name:    filepath.Base(fileName[:len(fileName)-4]),
+		name:    filepath.Base(fileName[:len(fileName)-5]),
 		program: prog,
-		out:     tc.out,
-		err:     tc.error,
+		out:     tc.Out,
+		err:     tc.Error,
 	}
 }
 

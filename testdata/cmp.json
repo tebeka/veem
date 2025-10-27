@@ -1,9 +1,9 @@
 {
 	"program": [
 		"PUSH 3",
-		"PUSH 5",
-		"SUB"
+		"PUSH 4",
+		"CMP"
 	],
 	"error": false,
-	"out": -2
+	"out": -1
 }
