@@ -1,96 +1,122 @@
 package veem
 
 import (
-	"cmp"
 	"errors"
+	"fmt"
+	"math"
+	"strconv"
+	"strings"
 )
 
+type Number float64
+
 type VM struct {
-	stack []int
-	sp    int
+	stack []Number
 	err   error
 }
 
-func (vm *VM) Execute(code []Inst) (int, error) {
-	ip := 0
-
-	for ip < len(code) {
-		ip += code[ip](vm)
-		if vm.err != nil {
-			return 0, vm.err
-		}
-	}
-
-	if vm.sp == 0 {
-		return 0, nil
-	}
-
-	return vm.stack[vm.sp-1], nil
-}
-
-type Inst func(*VM) int
-
-func Push(n int) Inst {
-	return func(vm *VM) int {
-		vm.stack = append(vm.stack, n)
-		vm.sp++
-		return 1
-	}
-}
-
-var ErrStackUnderflow = errors.New("stack underflow")
-var ErrDivisionByZero = errors.New("division by zero")
-
-func binOp(vm *VM, fn func(int, int) int) int {
-	if vm.sp < 2 {
-		vm.err = ErrStackUnderflow
+func (vm *VM) Pop() Number {
+	n := len(vm.stack)
+	if n == 0 {
+		vm.err = errors.New("stack underflow")
 		return 0
 	}
 
-	vm.stack[vm.sp-2] = fn(vm.stack[vm.sp-2], vm.stack[vm.sp-1])
-	vm.sp--
-	vm.stack = vm.stack[:vm.sp]
-	return 1
+	v := vm.stack[n-1]
+	vm.stack = vm.stack[:n-1]
+	return v
 }
 
-func Add(vm *VM) int {
-	return binOp(vm, func(a, b int) int { return a + b })
+func (vm *VM) Push(v Number) {
+	vm.stack = append(vm.stack, v)
 }
 
-func Sub(vm *VM) int {
-	return binOp(vm, func(a, b int) int { return a - b })
+func cleanCode(code string) string {
+	i := strings.Index(code, ";")
+	if i != -1 {
+		code = code[:i]
+	}
+
+	return strings.ToUpper(strings.TrimSpace(code))
 }
 
-func Mul(vm *VM) int {
-	return binOp(vm, func(a, b int) int { return a * b })
-}
+const (
+	OpAdd = "ADD"
+	OpSub = "SUB"
+	OpMul = "MUL"
+	OpDiv = "DIV"
+	OpMod = "MOD"
 
-func Div(vm *VM) int {
-	return binOp(
-		vm,
-		func(a, b int) int {
-			if b == 0 {
-				vm.err = ErrDivisionByZero
-				return 0
+	OpPush = "PUSH"
+)
+
+func (vm *VM) Execute(code []string) {
+	ip := 0
+
+	for ip < len(code) && vm.err == nil {
+		line := cleanCode(code[ip])
+
+		if line == "" {
+			ip++
+			continue
+		}
+
+		fields := strings.Fields(line)
+		switch op := fields[0]; op {
+		case OpAdd, OpSub, OpMul, OpDiv, OpMod:
+			if len(fields) != 1 {
+				vm.err = fmt.Errorf("bad inst: %q", code)
+				return
 			}
-			return a / b
-		},
-	)
-}
 
-func Mod(vm *VM) int {
-	return binOp(
-		vm,
-		func(a, b int) int {
-			if b == 0 {
-				vm.err = ErrDivisionByZero
-				return 0
+			binOp(vm, op)
+			ip++
+		case OpPush:
+			if len(fields) != 2 {
+				vm.err = fmt.Errorf("bad inst: %q", code)
+				return
 			}
-			return a % b
-		},
-	)
+
+			n, err := strconv.ParseFloat(fields[1], 64)
+			if err != nil {
+				vm.err = fmt.Errorf("%s: %w", code, err)
+				return
+			}
+			vm.Push(Number(n))
+			ip++
+		}
+
+	}
 }
 
-func Cmp(vm *VM) int {
-	return binOp(vm, cmp.Compare)
+func binOp(vm *VM, op string) {
+	b, a := vm.Pop(), vm.Pop()
+	if vm.err != nil {
+		return
+	}
+
+	var n Number
+	switch op {
+	case OpAdd:
+		n = a + b
+	case OpSub:
+		n = a - b
+	case OpMul:
+		n = a * b
+	case OpDiv:
+		n = a / b
+	case OpMod:
+		if math.Round(float64(a)) != float64(a) || math.Round(float64(b)) != float64(b) {
+			vm.err = fmt.Errorf("MOD not on round numbers")
+			return
+		}
+
+		if b == 0 {
+			vm.err = errors.New("mod by 0")
+		} else {
+			n = Number(int(a) % int(b))
+		}
+	}
+
+	vm.Push(n)
 }

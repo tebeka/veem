@@ -1,0 +1,63 @@
+- name: add
+  code: |
+    PUSH 3
+    PUSH 5
+    ADD
+  error: false
+  out: 8
+- name: add missing op
+  code: |
+    PUSH 3
+    ADD
+  error: true
+- name: sub
+  code: |
+    PUSH 3
+    PUSH 5
+    SUB
+  error: false
+  out: -2
+- name: mul
+  code: |
+    PUSH 3
+    PUSH 5
+    MUL
+  error: false
+  out: 15
+- name: div
+  code: |
+    PUSH 3
+    PUSH 5
+    DIV
+  error: false
+  out: 0.6
+- name: complex
+  code: |
+    PUSH 5
+    PUSH 3
+    MUL
+    PUSH 3
+    DIV
+    PUSH 2
+    ADD
+  error: false
+  out: 7
+- name: mod
+  code: |
+    PUSH 7
+    PUSH 3
+    MOD
+  error: false
+  out: 1
+- name: mod fraction
+  code: |
+    PUSH 7.3
+    PUSH 3
+    MOD
+  error: true
+- name: mod zero
+  code: |
+    PUSH 7
+    PUSH 0
+    MOD
+  error: true
