@@ -1,0 +1,21 @@
+- name: equal
+  code: |
+    PUSH 3
+    PUSH 3
+    CMP
+  error: false
+  out: 0
+- name: bigger
+  code: |
+    PUSH 3
+    PUSH 2
+    CMP
+  error: false
+  out: 1
+- name: smaller
+  code: |
+    PUSH 2
+    PUSH 3
+    CMP
+  error: false
+  out: -1

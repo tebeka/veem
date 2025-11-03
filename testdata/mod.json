@@ -1,9 +1,0 @@
-{
-	"program": [
-		"PUSH 7",
-		"PUSH 3",
-		"MOD"
-	],
-	"error": false,
-	"out": 1
-}

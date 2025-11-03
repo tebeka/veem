@@ -1,9 +1,0 @@
-{
-	"program": [
-		"PUSH 3",
-		"PUSH 4",
-		"CMP"
-	],
-	"error": false,
-	"out": -1
-}

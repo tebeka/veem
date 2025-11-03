@@ -46,6 +46,7 @@ const (
 	OpMul = "MUL"
 	OpDiv = "DIV"
 	OpMod = "MOD"
+	OpCmp = "CMP"
 
 	OpPush = "PUSH"
 )
@@ -63,7 +64,7 @@ func (vm *VM) Execute(code []string) {
 
 		fields := strings.Fields(line)
 		switch op := fields[0]; op {
-		case OpAdd, OpSub, OpMul, OpDiv, OpMod:
+		case OpAdd, OpSub, OpMul, OpDiv, OpMod, OpCmp:
 			if len(fields) != 1 {
 				vm.err = fmt.Errorf("bad inst: %q", code)
 				return
@@ -115,6 +116,15 @@ func binOp(vm *VM, op string) {
 			vm.err = errors.New("mod by 0")
 		} else {
 			n = Number(int(a) % int(b))
+		}
+	case OpCmp:
+		switch {
+		case a == b:
+			n = 0
+		case a > b:
+			n = 1
+		default:
+			n = -1
 		}
 	}
 
